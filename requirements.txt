@@ -1,0 +1,14 @@
+# requirements.txt
+fastapi
+uvicorn
+gunicorn
+python-multipart
+streamlit
+requests
+google-generativeai
+python-dotenv
+pdfplumber
+openpyxl
+python-docx
+pandas
+pillow

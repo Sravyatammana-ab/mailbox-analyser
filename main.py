@@ -36,6 +36,16 @@ def validate_file(file: UploadFile):
             detail=f"Unsupported file type: {ext}. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
         )
 
+@app.get("/")
+async def root():
+    return {
+        "message": "Document Analysis API",
+        "endpoints": {
+            "health": "GET /health",
+            "analyze": "POST /analyze"
+        }
+    }
+
 @app.get("/health", status_code=200)
 async def health_check():
     return {"status": "ok"}
@@ -54,13 +64,18 @@ async def analyze(file: UploadFile = File(...)):
             tmp_path = tmp.name
 
         # 1. Extract text using the hybrid service
+        logging.info(f"Processing file: {file.filename}, content_type: {file.content_type}")
         extracted_text = await textract_service.extract_text_from_upload(
             tmp_path,
             file_bytes,
             file.content_type if hasattr(file, "content_type") else None
         )
+        logging.info(f"Extracted text length: {len(extracted_text) if extracted_text else 0}")
         if not extracted_text or not extracted_text.strip():
-            raise HTTPException(status_code=422, detail="Failed to extract text from document.")
+            raise HTTPException(
+                status_code=422, 
+                detail="Failed to extract text from document. Check if GEMINI_API_KEY is set and file is readable."
+            )
 
         # 2. Classify the document type
         classification_result = await gemini_service.classify_document(extracted_text)

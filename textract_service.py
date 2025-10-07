@@ -20,6 +20,7 @@ async def extract_text_from_upload(file_path: str, file_bytes: bytes, mime_type_
     """Extracts text from various formats. Falls back to Gemini multimodal OCR for scans/images."""
 
     ext = file_path.lower()
+    logging.info(f"extract_text_from_upload called: file_path={file_path}, mime_type={mime_type_hint}, file_size={len(file_bytes)} bytes")
 
     # 1. Extract text from digital PDFs
     if ext.endswith(".pdf"):
@@ -75,8 +76,11 @@ async def extract_text_from_upload(file_path: str, file_bytes: bytes, mime_type_
         mime_type = mime_type_hint
         if not mime_type:
             mime_type, _ = guess_type(file_path)
+        logging.info(f"Calling Gemini with mime_type={mime_type}")
         # Call async Gemini extractor
-        return await gemini_service.extract_text_from_file(file_path, file_bytes, mime_type)
+        result = await gemini_service.extract_text_from_file(file_path, file_bytes, mime_type)
+        logging.info(f"Gemini extraction result length: {len(result) if result else 0}")
+        return result
     except Exception as e:
-        logging.error(f"Gemini OCR error: {e}")
+        logging.error(f"Gemini OCR error: {e}", exc_info=True)
         return ""

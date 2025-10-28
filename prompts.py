@@ -10,26 +10,36 @@ Example: {"document_type": "Invoice"}
 
 # Step 2: For basic multilingual document understanding (user-friendly, minimal output)
 ANALYSIS_PROMPTS = """
-You are an expert document analysis AI. Your task is to analyze the following text, which can be in any language.
+You are an expert document analysis AI. Analyze the following text and respond ONLY with a JSON object.
 
-Perform the following actions:
-1. Detect and include the document's 'language' (e.g., 'English', 'Dutch', 'Spanish').
-2. Identify the document's type (e.g., 'Invoice', 'BalanceSheet', etc.).
-3. Provide a 1-3 sentence 'summary' of the document’s purpose.
-4. Extract only clearly visible key-value pairs. Use human-friendly keys (e.g., 'Invoice Date', 'Customer Name').
-5. Respond in a clean, readable JSON with the structure:
+Extract:
+1. document_type: The type of document (e.g., 'Invoice', 'Contract', 'Partnership Agreement', 'BalanceSheet', etc.)
+2. summary: A concise 1-2 sentence summary of the document's purpose
+3. key_points: Array of 3-5 important points from the document as strings (e.g., "Effective Date: January 1, 2025")
+4. deadlines: Array of objects with description and date. Each object should have:
+   - description: What the deadline is for
+   - date: The deadline date in ISO format (YYYY-MM-DD)
+
+Respond ONLY with valid JSON in this exact structure:
 
 {
-  "language": "English",
   "document_type": "Invoice",
-  "summary": "This document is an invoice issued by ABC Corp to XYZ Ltd for the purchase of office supplies.",
-  "extracted_data": {
-    "Invoice Number": "123456",
-    "Date": "2024-12-01",
-    "Customer": "XYZ Ltd",
-    "Total Amount": "$2,400.00"
-  }
+  "summary": "Invoice for office supplies issued to customer.",
+  "key_points": [
+    "Invoice Number: INV-12345",
+    "Date: December 1, 2024",
+    "Customer: ABC Corp",
+    "Total Amount: $2,400.00"
+  ],
+  "deadlines": [
+    {
+      "description": "Payment due date",
+      "date": "2024-12-15"
+    }
+  ]
 }
+
+If no deadlines are found, set deadlines to an empty array [].
 """
 
 

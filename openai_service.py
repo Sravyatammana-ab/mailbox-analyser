@@ -7,7 +7,7 @@ from prompts import CLASSIFICATION_PROMPT, ANALYSIS_PROMPTS
 
 # Load OpenAI credentials
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 MAX_RETRIES = 3
 
 async def classify_document(text: str) -> dict:
@@ -54,19 +54,20 @@ async def analyze_document_by_type(text: str, doc_type: str) -> dict:
                 temperature=0.2
             )
             content = response.choices[0].message.content.strip()
-            logging.debug(f"OpenAI response: {content}")
+            logging.info(f"OpenAI response: {content[:500]}")  # Log first 500 chars
             result = json.loads(content)
 
             if isinstance(result, dict):
+                logging.info(f"Successfully parsed OpenAI response. Keys: {result.keys()}")
                 return result
             else:
                 logging.warning("Unexpected analysis format.")
-                return {"result": str(result)}
+                return {"document_type": doc_type, "summary": str(result), "key_points": [], "deadlines": []}
 
         except Exception as e:
-            logging.warning(f"Attempt {attempt} failed: {e}")
+            logging.error(f"Attempt {attempt} failed: {e}", exc_info=True)
     logging.error("All analysis attempts failed.")
-    return {"error": "Failed to analyze document."}
+    return {"document_type": doc_type, "summary": "Failed to analyze document.", "key_points": [], "deadlines": []}
 
 
 

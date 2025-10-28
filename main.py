@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import textract_service
-import gemini_service
+import openai_service
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,7 +26,7 @@ app.add_middleware(
 )
 
 # Allowed file extensions
-ALLOWED_EXTENSIONS = [".pdf", ".docx", ".csv", ".xlsx", ".png", ".jpg", ".jpeg"]
+ALLOWED_EXTENSIONS = [".pdf", ".docx", ".csv", ".xlsx", ".png", ".jpg", ".jpeg", ".txt"]
 
 def validate_file(file: UploadFile):
     ext = Path(file.filename).suffix.lower()
@@ -42,7 +42,7 @@ async def root():
         "message": "Document Analysis API",
         "endpoints": {
             "health": "GET /health",
-            "analyze": "POST /analyze"
+            "analyze-document": "POST /analyze-document"
         }
     }
 
@@ -50,8 +50,8 @@ async def root():
 async def health_check():
     return {"status": "ok"}
 
-@app.post("/analyze")
-async def analyze(file: UploadFile = File(...)):
+@app.post("/analyze-document")
+async def analyze_document(file: UploadFile = File(...)):
     """Main endpoint to upload and analyze a document."""
     tmp_path = None
     try:
@@ -74,31 +74,40 @@ async def analyze(file: UploadFile = File(...)):
         if not extracted_text or not extracted_text.strip():
             raise HTTPException(
                 status_code=422, 
-                detail="Failed to extract text from document. Check if GEMINI_API_KEY is set and file is readable."
+                detail="Failed to extract text from document. File may be corrupted or unsupported."
             )
 
         # 2. Classify the document type
-        classification_result = await gemini_service.classify_document(extracted_text)
+        classification_result = await openai_service.classify_document(extracted_text)
         logging.info(f"classification_result type: {type(classification_result)}, value: {classification_result}")
         if not isinstance(classification_result, dict):
             classification_result = {"document_type": str(classification_result)}
         doc_type = classification_result.get("document_type", "GeneralDocument")
 
         # 3. Perform specialized analysis
-        analysis_result = await gemini_service.analyze_document_by_type(extracted_text, doc_type)
+        analysis_result = await openai_service.analyze_document_by_type(extracted_text, doc_type)
         
-        # ✅ Ensure analysis_result is a dictionary
+        # Ensure analysis_result is a dictionary
         if not isinstance(analysis_result, dict):
             logging.warning("OpenAI returned non-dict analysis result. Wrapping it.")
-            analysis_result = {"analysis_output": str(analysis_result)}
+            analysis_result = {"document_type": doc_type, "summary": str(analysis_result), "key_points": [], "deadlines": []}
 
-        # ✅ Optional debug logging
+        # Optional debug logging
         logging.info(f"analysis_result type: {type(analysis_result)}, value: {analysis_result}")
 
+        # Extract structured fields from analysis_result
+        document_type = analysis_result.get("document_type", doc_type)
+        summary = analysis_result.get("summary", "")
+        key_points = analysis_result.get("key_points", [])
+        deadlines = analysis_result.get("deadlines", [])
+        
+        # Build simplified response for frontend
         return {
             "filename": file.filename,
-            "document_type": doc_type,
-            "analysis": analysis_result
+            "document_type": document_type,
+            "summary": summary,
+            "key_points": key_points,
+            "deadlines": deadlines
         }
 
     except Exception as e:

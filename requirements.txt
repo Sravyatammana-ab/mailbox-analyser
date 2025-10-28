@@ -12,3 +12,5 @@ openpyxl
 python-docx
 pandas
 pillow
+pytesseract
+openai

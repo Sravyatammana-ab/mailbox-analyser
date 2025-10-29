@@ -16,13 +16,14 @@ load_dotenv()
 app = FastAPI(title="Document Analysis API")
 logging.basicConfig(level=logging.INFO)
 
-# Configure CORS for development (restrict in production)
+# Configure CORS - Allow all origins for document upload
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Use ["https://yourfrontend.com"] in production
+    allow_origins=["*"],  # Allows requests from any origin
     allow_credentials=True,
-    allow_methods=["POST", "GET"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # Added OPTIONS for CORS preflight
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Allowed file extensions
